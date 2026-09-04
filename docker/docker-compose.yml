@@ -1,0 +1,61 @@
+x-app-base: &app-base
+  image: carrental:latest
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    target: development
+  volumes:
+    - ..:/app
+    - /app/.venv
+  env_file:
+    - ../.env
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    env_file:
+      - ../.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    <<: *app-base
+    command: uv run python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+
+  worker:
+    <<: *app-base
+    command: uv run celery -A root worker --loglevel=info
+
+  beat:
+    <<: *app-base
+    command: uv run celery -A root beat --loglevel=info
+
+volumes:
+  pgdata:
+  redis_data:
