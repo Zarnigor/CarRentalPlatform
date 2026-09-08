@@ -1,33 +1,47 @@
 FROM python:3.12-slim AS builder
 
-RUN apt-get update && apt-get install -y \
-    gdal-bin \
-    libgdal-dev \
-    libgeos-dev \
-    libproj-dev \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+        gdal-bin \
+        libgdal-dev \
+        libgeos-dev \
+        libproj-dev \
     && rm -rf /var/lib/apt/lists/*
 
-#COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-# This is valid and verified directly from the official astral/uv Docker Hub repository
-COPY --from=docker.io/astral/uv:latest /uv /uvx /bin/
-
+COPY --from=docker.io/astral/uv:0.12.9 /uv /uvx /bin/
 
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-install-project
 
 COPY . .
-RUN uv sync --frozen --no-dev
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
 
-FROM builder AS production
+FROM python:3.12-slim AS production
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+        gdal-bin \
+        libgeos-c1v5 \
+        libproj25 \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --gid 1000 appuser \
     && useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser
 
+ENV PYTHONUNBUFFERED=1 \
+    UV_NO_SYNC=1
+
 WORKDIR /app
 
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 COPY --from=builder --chown=appuser:appuser /app /app
 
 ENV PATH="/app/.venv/bin:$PATH" \

@@ -15,7 +15,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
       target: production
     command: gunicorn root.wsgi:application --bind 0.0.0.0:8000 --workers 4
@@ -37,7 +37,7 @@ services:
 
   worker:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
       target: production
     command: uv run celery -A root worker --loglevel=info --concurrency=4
@@ -52,7 +52,7 @@ services:
 
   beat:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile
       target: production
     command: uv run celery -A root beat --loglevel=info
