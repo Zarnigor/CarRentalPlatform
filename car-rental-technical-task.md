@@ -1,3 +1,7 @@
+servicelar
+testlar (pytest bilan) - servicelarga
+keyin har biriga MOdelViewset va generic viewset bilan apilarni yozish
+
 # Technical Task — "AutoRent" Car Rental Platform
 
 **Level:** Middle → Senior backend engineer
@@ -85,11 +89,11 @@ EXCLUDE USING gist (
 Minimum endpoints. All list endpoints paginated with **keyset pagination**, not offset — and you must explain why offset pagination degrades at page 5000.
 
 ```
-POST   /api/v1/auth/token
-GET    /api/v1/cars/search?lat=&lon=&radius_m=&from=&to=&model=&sort=distance|price
-GET    /api/v1/cars/{id}/availability?from=&to=
+POST   /api/v1/auth/token **(done)**
+GET    /api/v1/cars/search?lat=&lon=&radius_m=&from=&to=&model=&sort=distance|price  **(done)**
+GET    /api/v1/cars/{id}/availability?from=&to=    **(done)**
 POST   /api/v1/bookings                (Idempotency-Key header REQUIRED)
-GET    /api/v1/bookings/{id}
+GET    /api/v1/bookings/{id}      **(done)**
 POST   /api/v1/bookings/{id}/cancel
 POST   /api/v1/rentals/{id}/start
 POST   /api/v1/rentals/{id}/finish

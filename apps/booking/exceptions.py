@@ -98,3 +98,8 @@ class PaymentProviderUnavailableError(ServiceUnavailableError):
 class OutboxEventPublishError(UpstreamServiceError):
     default_message = _("Hodisani (event) yuborib bo'lmadi")
     error_code = "outbox_event_publish_failed"
+
+
+class MissingIdempotencyKeyError(UnprocessableEntityError):
+    default_message = _("Idempotency-Key header talab qilinadi")
+    error_code = "missing_idempotency_key"

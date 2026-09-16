@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import ctypes.util
+from datetime import datetime, timedelta
 
 load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -18,9 +19,11 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.postgres',
     'django.contrib.staticfiles',
     'django.contrib.gis',
     'rest_framework',
+    'drf_spectacular',
     'apps.accounts.apps.AccountsConfig',
     'apps.booking.apps.BookingConfig',
     'apps.fleet.apps.FleetConfig',
@@ -104,10 +107,28 @@ MAILERS = {
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
+        "rest_framework.permissions.IsAuthenticated"
     ],
-    "EXCEPTION_HANDLER": "root.exception_handlers.app_exception_handler",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+   "EXCEPTION_HANDLER": "root.exception_handlers.app_exception_handler",
 }
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "AutoRent API",
+    "DESCRIPTION": "Car rental platform backend — search, booking, rentals, ops.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+}
+
 
 import platform
 

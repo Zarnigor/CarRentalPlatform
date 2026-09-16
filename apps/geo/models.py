@@ -10,13 +10,10 @@ class City(models.Model):
 class Station(models.Model):
     city = models.ForeignKey(City, on_delete=models.CASCADE)
     name = models.CharField(max_length=30)
-    location = models.PointField(srid=4326)
+    location = models.PointField(srid=4326, geography=True)
     capacity = models.IntegerField()
-    geofence = models.PolygonField(srid=4326)
+    geofence = models.PolygonField(srid=4326, geography=True)
     target_count = models.IntegerField()
 
-    class Meta:
-        indexes = [
-            models.Index(fields=['location'], name='location'),
-        ]
-
+    #PointField, PolygonField, MultiPolygonField, LineStringField fieldlarda
+    #spatial_index default True bo'ladi.

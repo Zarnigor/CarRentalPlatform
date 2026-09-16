@@ -26,7 +26,5 @@ class StationNearbySerializer(serializers.ModelSerializer):
     def get_lon(self, obj) -> float:
         return obj.location.x
 
-    def get_distance_m(self, obj) -> float | None:
-        if obj.distance_m is None:
-            return None
-        return round(obj.distance_m.m, 1)
+    def get_distance_m(self, obj) -> float:
+        return round(obj.distance.m, 1)

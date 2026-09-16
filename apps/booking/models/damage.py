@@ -1,7 +1,7 @@
 from django.db import models
-
+from apps.booking.enums import DamageType, DamageSeverity
 from apps.booking.models.rental import Rental
-from apps.enums import DamageType, DamageSeverity
+
 
 class Damage(models.Model):
     rental = models.ForeignKey(Rental, on_delete=models.CASCADE)

@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from apps.enums import CustomerTier
+from apps.accounts.enums import CustomerTier
 
 
 class CustomUser(User):
