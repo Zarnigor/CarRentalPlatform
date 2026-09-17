@@ -1,6 +1,7 @@
 from django.db import models
 
 from apps.accounts.models import CustomUser
+from apps.fleet.models import Car
 from apps.geo.models import Station
 
 
@@ -13,7 +14,7 @@ class RelocationPlan(models.Model):
 
 class RelocationTask(models.Model):
     plan = models.ForeignKey(RelocationPlan,on_delete=models.CASCADE)
-    car = models.ForeignKey(CustomUser,on_delete=models.CASCADE, related_name="relocation_tasks")
+    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name="relocation_tasks")
     source_station = models.ForeignKey(Station,on_delete=models.CASCADE, related_name="relocation_tasks_from")
     destination_station = models.ForeignKey(Station,on_delete=models.CASCADE, related_name="relocation_tasks_to")
     distance_km = models.DecimalField(max_digits=10,decimal_places=2)
