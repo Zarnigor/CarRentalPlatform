@@ -32,6 +32,6 @@ class Booking(models.Model):
                     ('car', RangeOperators.EQUAL),
                     ('period', RangeOperators.OVERLAPS),
                 ],
-                condition=Q(status__in=['pending', 'confirmed']),
+                condition=Q(status__in=[BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.ACTIVE]),
             )
         ]
