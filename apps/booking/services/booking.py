@@ -46,6 +46,10 @@ class BookingService:
                 )
 
                 PaymentService().create_hold(booking=booking, amount=total_price)
+
+                booking.status = BookingStatus.CONFIRMED
+                booking.save(update_fields=["status", "updated_at"])
+
                 return booking
 
         except IntegrityError as e:
