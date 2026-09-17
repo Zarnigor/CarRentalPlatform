@@ -1,7 +1,9 @@
 import pytest
+from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.gis.geos import Point
+from django.utils import timezone
 
 from apps.booking.enums import BookingStatus, RentalStatus
 from apps.booking.exceptions import (
@@ -61,14 +63,24 @@ class TestFinishRental:
 
     @pytest.fixture
     def active_rental(self, confirmed_booking) -> Rental:
+        from apps.booking.enums import PaymentKind, PaymentStatus
+        from apps.booking.models import Payment
         from apps.fleet.enums import CarStatus
+
         confirmed_booking.car.status = CarStatus.IN_USE
         confirmed_booking.car.save(update_fields=["status"])
+        Payment.objects.create(
+            booking=confirmed_booking,
+            kind=PaymentKind.DEPOSIT_HOLD,
+            amount=confirmed_booking.total_price,
+            status=PaymentStatus.PROCESSING,
+        )
         return Rental.objects.create(
             booking=confirmed_booking,
             start_odometer=Decimal("10000.00"),
             end_odometer=Decimal("10000.00"),
             status=RentalStatus.ACTIVE,
+            started_at=timezone.now() - timedelta(hours=2),
         )
 
     def _dropoff_inside(self, station) -> tuple[float, float]:

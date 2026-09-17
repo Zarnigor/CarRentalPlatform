@@ -1,9 +1,19 @@
 import pytest
 
-from apps.booking.enums import BookingStatus
+from apps.booking.enums import BookingStatus, PaymentKind, PaymentStatus
 from apps.booking.exceptions import BookingNotCancellableError, BookingNotFoundError
 from apps.booking.models import Payment
 from apps.booking.services import BookingService
+
+
+def _create_hold(booking):
+    """Create the DEPOSIT_HOLD payment that cancel_booking expects to find."""
+    return Payment.objects.create(
+        booking=booking,
+        kind=PaymentKind.DEPOSIT_HOLD,
+        amount=booking.total_price,
+        status=PaymentStatus.PROCESSING,
+    )
 
 
 @pytest.mark.django_db
@@ -12,6 +22,7 @@ class TestCancelBooking:
     def test_cancels_pending_booking(self, customer, confirmed_booking):
         confirmed_booking.status = BookingStatus.PENDING
         confirmed_booking.save(update_fields=["status"])
+        _create_hold(confirmed_booking)
 
         service = BookingService()
         cancelled = service.cancel_booking(booking_id=confirmed_booking.id, customer=customer)
@@ -19,6 +30,8 @@ class TestCancelBooking:
         assert cancelled.status == BookingStatus.CANCELLED
 
     def test_cancels_confirmed_booking(self, customer, confirmed_booking):
+        _create_hold(confirmed_booking)
+
         service = BookingService()
         cancelled = service.cancel_booking(booking_id=confirmed_booking.id, customer=customer)
 
