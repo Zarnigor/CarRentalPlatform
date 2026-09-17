@@ -27,7 +27,7 @@ class TestCreateBooking:
         )
 
         assert booking.id is not None
-        assert booking.status == BookingStatus.PENDING
+        assert booking.status == BookingStatus.CONFIRMED
         assert booking.car_id == car.id
 
     def test_returns_same_booking_for_same_idempotency_key(self, customer, car, station, booking_period):

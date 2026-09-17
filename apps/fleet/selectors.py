@@ -6,6 +6,7 @@ from datetime import datetime
 from django.contrib.gis.geos import Point
 from django.contrib.gis.db.models.functions import Distance
 from django.db.models import Exists, OuterRef, QuerySet
+from psycopg2.extras import DateTimeTZRange
 from ..booking.models import Booking
 from ..booking.enums import BookingStatus
 
@@ -54,8 +55,7 @@ def find_available_cars(
     overlapping_bookings = Booking.objects.filter(
         car=OuterRef("pk"),
         status__in=blocking_statuses,
-        start_at__lt=date_to,
-        end_at__gt=date_from,
+        period__overlap=DateTimeTZRange(date_from, date_to),
     )
 
     queryset = (

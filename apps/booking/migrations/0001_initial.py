@@ -4,6 +4,7 @@ import django.contrib.postgres.constraints
 import django.contrib.postgres.fields.ranges
 import django.db.models.deletion
 import uuid
+from django.contrib.postgres.operations import CreateExtension
 from django.db import migrations, models
 
 
@@ -18,6 +19,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        CreateExtension("btree_gist"),
         migrations.CreateModel(
             name="OutboxEvent",
             fields=[
@@ -341,7 +343,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="booking",
             constraint=django.contrib.postgres.constraints.ExclusionConstraint(
-                condition=models.Q(("status__in", ["pending", "confirmed"])),
+                condition=models.Q(("status__in", ["PENDING", "CONFIRMED", "ACTIVE"])),
                 expressions=[("car", "="), ("period", "&&")],
                 name="exclude_overlapping_bookings",
             ),
