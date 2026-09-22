@@ -1,6 +1,7 @@
 from django.db import transaction, IntegrityError
 from psycopg2.extras import DateTimeTZRange
 
+from apps.accounts.models import Customer
 from apps.booking.models import Booking
 from apps.booking.enums import BookingStatus
 from apps.booking.services.payment import PaymentService
@@ -8,8 +9,9 @@ from apps.fleet.models import Car
 from apps.booking.exceptions import (
     CarNotAvailableForPeriodError,
     BookingNotFoundError,
-    BookingNotCancellableError
+    BookingNotCancellableError,
 )
+from root.exceptions import PermissionDeniedError
 
 
 class BookingService:
@@ -22,13 +24,16 @@ class BookingService:
         period: DateTimeTZRange,
         total_price,
         idempotency_key,
-    ) -> Booking:
+    ) -> tuple[Booking, bool]:
         """
-        Yangi booking yaratadi. idempotency_key orqali takroriy so'rovlar himoyalanadi.
+        Creates new booking checks the idempotency_key
+
+        Returns:
+            (booking, is_replay): is_replay=True when the key was already used.
         """
         existing = Booking.objects.filter(idempotency_key=idempotency_key).first()
         if existing:
-            return existing
+            return existing, True
 
         try:
             with transaction.atomic():
@@ -50,16 +55,41 @@ class BookingService:
                 booking.status = BookingStatus.CONFIRMED
                 booking.save(update_fields=["status", "updated_at"])
 
-                return booking
+                return booking, False
 
         except IntegrityError as e:
             if 'exclude_overlapping_bookings' in str(e):
                 raise CarNotAvailableForPeriodError(car_id=car_id, period=str(period))
             if 'idempotency_key' in str(e):
                 existing = Booking.objects.get(idempotency_key=idempotency_key)
-                return existing
+                return existing, True
             raise
 
+
+    def create_booking_from_user(
+        self, *,
+        user,
+        car_id: int,
+        pickup_station_id: int,
+        dropoff_station_id: int,
+        period: DateTimeTZRange,
+        total_price,
+        idempotency_key,
+        **_,
+    ) -> tuple[Booking, bool]:
+        try:
+            customer = Customer.objects.get(user_id=user.pk)
+        except Customer.DoesNotExist:
+            raise PermissionDeniedError()
+        return self.create_booking(
+            customer=customer,
+            car_id=car_id,
+            pickup_station_id=pickup_station_id,
+            dropoff_station_id=dropoff_station_id,
+            period=period,
+            total_price=total_price,
+            idempotency_key=idempotency_key,
+        )
 
     def cancel_booking(self, *, booking_id: int, customer) -> Booking:
         with transaction.atomic():

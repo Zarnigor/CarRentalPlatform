@@ -7,15 +7,12 @@ from apps.booking.exceptions import PaymentCaptureFailedError
 class PaymentService:
 
     def create_hold(self, *, booking: Booking, amount: Decimal) -> Payment:
-        payment = Payment.objects.create(
+        return Payment.objects.create(
             booking=booking,
             kind=PaymentKind.DEPOSIT_HOLD,
             amount=amount,
-            status=PaymentStatus.PENDING,
+            status=PaymentStatus.PROCESSING,
         )
-        payment.status = PaymentStatus.PROCESSING
-        payment.save(update_fields=["status", "updated_at"])
-        return payment
 
     def release_hold(self, *, booking: Booking) -> Payment:
         """

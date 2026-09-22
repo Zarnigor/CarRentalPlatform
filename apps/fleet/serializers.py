@@ -1,11 +1,11 @@
 from django.utils.translation import gettext_lazy as _
+from psycopg2.extras import DateTimeTZRange
 from rest_framework import serializers
 from .models import Car
 
 
 class CarAvailabilitySerializer(serializers.Serializer):
-    period_from = serializers.DateTimeField(source="from")
-    period_to = serializers.DateTimeField(source="to")
+    available = serializers.BooleanField()
 
 
 class CarAvailabilityQuerySerializer(serializers.Serializer):
@@ -17,6 +17,7 @@ class CarAvailabilityQuerySerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 _("`to` qiymati `from`dan katta bo'lishi kerak")
             )
+        attrs["period"] = DateTimeTZRange(attrs["period_from"], attrs["period_to"])
         return attrs
 
 

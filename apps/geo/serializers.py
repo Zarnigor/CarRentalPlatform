@@ -27,4 +27,4 @@ class StationNearbySerializer(serializers.ModelSerializer):
         return obj.location.x
 
     def get_distance_m(self, obj) -> float:
-        return round(obj.distance.m, 1)
+        return round(obj.distance.m, 1)  # obj.distance set by Distance annotation in selector

@@ -13,6 +13,7 @@ urlpatterns = [
     path('', include('apps.fleet.urls')),
     path('', include('apps.accounts.urls')),
     path('', include('apps.booking.urls')),
+    path('', include('apps.ops.urls')),
 ]
 
 
