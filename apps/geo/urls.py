@@ -1,6 +1,9 @@
-from django.urls import path
-from .views import NearbyStationsView
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
-urlpatterns = [
-    path('api/v1/stations/nearby/', NearbyStationsView.as_view(), name="stations-nearby"),
-]
+from .views import StationViewSet
+
+router = DefaultRouter()
+router.register("api/v1/stations", StationViewSet, basename="station")
+
+urlpatterns = [path("", include(router.urls))]

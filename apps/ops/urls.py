@@ -1,7 +1,9 @@
-from django.urls import path
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
-from .views import UtilizationView
+from .views import OpsViewSet
 
-urlpatterns = [
-    path("api/v1/ops/utilization/", UtilizationView.as_view(), name="ops-utilization"),
-]
+router = DefaultRouter()
+router.register("api/v1/ops", OpsViewSet, basename="ops")
+
+urlpatterns = [path("", include(router.urls))]
