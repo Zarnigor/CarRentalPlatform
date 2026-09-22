@@ -1,93 +1,69 @@
-from django.db import transaction
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenObtainPairView
-
-from .models import Customer, CustomUser
-from .serializers import (
-    CustomTokenObtainPairSerializer,
-    LogoutSerializer,
-    MeSerializer,
-    RegisterSerializer,
-)
+from rest_framework.viewsets import GenericViewSet
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer, TokenVerifySerializer
+from .models import CustomUser
+from .serializers import CustomTokenObtainPairSerializer, LogoutSerializer, MeSerializer, RegisterSerializer
+from .services import AccountService
+from .utils import _me_data
 
 
-def _customer_for(user) -> Customer | None:
-    return Customer.objects.filter(user_id=user.pk).first()
+class AuthViewSet(GenericViewSet):
+    queryset = CustomUser.objects.none()
+    serializer_class = MeSerializer
 
+    def get_permissions(self):
+        public = {"token", "token_refresh", "token_verify", "register"}
+        if self.action in public:
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
-def _me_data(user) -> dict:
-    c = _customer_for(user)
-    return {
-        "id": user.pk,
-        "username": user.username,
-        "email": user.email,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "license_no": c.license_no if c else None,
-        "tier": c.tier if c else None,
-        "risk_score": c.risk_score if c else None,
-    }
+    @action(methods=["post"], detail=False, url_path="token", permission_classes=[AllowAny])
+    def token(self, request):
+        s = CustomTokenObtainPairSerializer(data=request.data)
+        try:
+            s.is_valid(raise_exception=True)
+        except TokenError as exc:
+            raise InvalidToken(exc.args[0])
+        return Response(s.validated_data)
 
+    @action(methods=["post"], detail=False, url_path="token/refresh", permission_classes=[AllowAny])
+    def token_refresh(self, request):
+        s = TokenRefreshSerializer(data=request.data)
+        try:
+            s.is_valid(raise_exception=True)
+        except TokenError as exc:
+            raise InvalidToken(exc.args[0])
+        return Response(s.validated_data)
 
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
+    @action(methods=["post"], detail=False, url_path="token/verify", permission_classes=[AllowAny])
+    def token_verify(self, request):
+        s = TokenVerifySerializer(data=request.data)
+        try:
+            s.is_valid(raise_exception=True)
+        except TokenError as exc:
+            raise InvalidToken(exc.args[0])
+        return Response(s.validated_data)
 
-
-class RegisterView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
+    @action(methods=["post"], detail=False, url_path="register", permission_classes=[AllowAny])
+    def register(self, request):
         s = RegisterSerializer(data=request.data)
         s.is_valid(raise_exception=True)
-        d = s.validated_data
+        return Response(AccountService().register(**s.validated_data), status=201)
 
-        with transaction.atomic():
-            user = CustomUser.objects.create_user(
-                username=d["username"],
-                email=d["email"],
-                password=d["password"],
-            )
-            Customer.objects.create(
-                user=user,
-                license_no=d["license_no"],
-                license_verified_at=d["license_verified_at"],
-            )
-
-        refresh = RefreshToken.for_user(user)
-        return Response(
-            {"access": str(refresh.access_token), "refresh": str(refresh)},
-            status=201,
-        )
-
-
-class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
+    @action(methods=["post"], detail=False, url_path="logout")
+    def logout(self, request):
         s = LogoutSerializer(data=request.data)
         s.is_valid(raise_exception=True)
-        try:
-            RefreshToken(s.validated_data["refresh"]).blacklist()
-        except TokenError:
-            return Response({"detail": "Token is invalid or already blacklisted."}, status=400)
+        AccountService().logout(refresh_token=s.validated_data["refresh"])
         return Response(status=204)
 
-
-class MeView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        return Response(MeSerializer(_me_data(request.user)).data)
-
-    def patch(self, request):
-        allowed = {"email", "first_name", "last_name"}
-        updates = {k: v for k, v in request.data.items() if k in allowed}
-        if updates:
-            for field, value in updates.items():
-                setattr(request.user, field, value)
-            request.user.save(update_fields=list(updates))
+    @action(methods=["get", "patch"], detail=False, url_path="me")
+    def me(self, request):
+        if request.method == "PATCH":
+            s = MeSerializer(data=request.data, partial=True)
+            s.is_valid(raise_exception=True)
+            AccountService().update_me(user=request.user, **s.validated_data)
         return Response(MeSerializer(_me_data(request.user)).data)

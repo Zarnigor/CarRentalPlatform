@@ -1,60 +1,41 @@
-from psycopg2.extras import DateTimeTZRange
-from rest_framework.generics import RetrieveAPIView
+from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
-
-from apps.accounts.models import Customer
-from root.exceptions import PermissionDeniedError
-
-from .exceptions import MissingIdempotencyKeyError
+from rest_framework.viewsets import GenericViewSet
 from .models import Booking
 from .serializers import BookingCreateSerializer, BookingDetailSerializer
 from .services import BookingService
+from .utils import require_idempotency_key
 
 
-def _require_idempotency_key(request) -> str:
-    key = request.headers.get("Idempotency-Key")
-    if not key:
-        raise MissingIdempotencyKeyError()
-    return key
+class BookingViewSet(CreateModelMixin, RetrieveModelMixin, GenericViewSet):
+    """
+    POST  api/v1/bookings/         — create (idempotent)
+    GET   api/v1/bookings/{id}/    — retrieve
+    """
 
+    queryset = Booking.objects.select_related(
+        "customer", "car", "pickup_station", "dropoff_station"
+    )
+    serializer_class = BookingDetailSerializer
+    lookup_field = "id"
 
-def _get_customer(request) -> Customer:
-    try:
-        return Customer.objects.get(user_id=request.user.pk)
-    except Customer.DoesNotExist:
-        raise PermissionDeniedError()
+    def get_serializer_class(self):
+        if self.action == "create":
+            return BookingCreateSerializer
+        return BookingDetailSerializer
 
-
-class BookingCreateView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        key = _require_idempotency_key(request)
-        body = BookingCreateSerializer(data=request.data)
-        body.is_valid(raise_exception=True)
-        d = body.validated_data
-
-        is_replay = Booking.objects.filter(idempotency_key=key).exists()
-        booking = BookingService().create_booking(
-            customer=_get_customer(request),
-            car_id=d["car_id"],
-            pickup_station_id=d["pickup_station_id"],
-            dropoff_station_id=d["dropoff_station_id"],
-            period=DateTimeTZRange(d["period_start"], d["period_end"]),
-            total_price=d["total_price"],
-            idempotency_key=key,
+    def create(self, request, *args, **kwargs):
+        key = require_idempotency_key(request)
+        s = BookingCreateSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        booking, is_replay = BookingService().create_booking_from_user(
+            user=request.user, idempotency_key=key, **s.validated_data
         )
-
         resp = Response(BookingDetailSerializer(booking).data, status=200 if is_replay else 201)
         if is_replay:
             resp["Idempotency-Replayed"] = "true"
         return resp
 
 
-class BookingDetailView(RetrieveAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = BookingDetailSerializer
-    queryset = Booking.objects.select_related("customer", "car", "pickup_station", "dropoff_station")
-    lookup_field = "id"
+

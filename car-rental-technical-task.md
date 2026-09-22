@@ -1,6 +1,6 @@
 servicelar
 testlar (pytest bilan) - servicelarga
-keyin har biriga MOdelViewset va generic viewset bilan apilarni yozish
+keyin har biriga ModelViewset va generic viewset bilan apilarni yozish
 
 # Technical Task — "AutoRent" Car Rental Platform
 

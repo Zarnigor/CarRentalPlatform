@@ -13,8 +13,8 @@ class UtilizationQuerySerializer(serializers.Serializer):
 
 
 class UtilizationBucketSerializer(serializers.Serializer):
-    bucket_start = serializers.DateTimeField(source="bucket_start")
-    bucket_end = serializers.DateTimeField(source="bucket_end")
+    bucket_start = serializers.DateTimeField()
+    bucket_end = serializers.DateTimeField()
     total_cars = serializers.IntegerField()
     busy_car_hours = serializers.DecimalField(max_digits=10, decimal_places=2)
     utilization_pct = serializers.DecimalField(max_digits=5, decimal_places=2)

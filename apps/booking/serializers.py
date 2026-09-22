@@ -1,3 +1,4 @@
+from psycopg2.extras import DateTimeTZRange
 from rest_framework import serializers
 from .models import Booking
 
@@ -15,6 +16,7 @@ class BookingCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"period_end": "period_end must be after period_start"}
             )
+        data["period"] = DateTimeTZRange(data["period_start"], data["period_end"])
         return data
 
 
