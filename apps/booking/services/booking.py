@@ -1,4 +1,5 @@
 from django.db import transaction, IntegrityError
+from django.db.models import QuerySet
 from psycopg2.extras import DateTimeTZRange
 
 from apps.accounts.models import Customer
@@ -90,6 +91,46 @@ class BookingService:
             total_price=total_price,
             idempotency_key=idempotency_key,
         )
+
+    def list_bookings(
+        self, *,
+        customer_id: int | None = None,
+        status: str | None = None,
+        car_id: int | None = None,
+    ) -> QuerySet:
+        qs = Booking.objects.select_related(
+            "customer", "car", "pickup_station", "dropoff_station"
+        )
+        if customer_id is not None:
+            qs = qs.filter(customer_id=customer_id)
+        if status is not None:
+            qs = qs.filter(status=status)
+        if car_id is not None:
+            qs = qs.filter(car_id=car_id)
+        return qs
+
+    def get_booking(self, *, booking_id: int) -> Booking:
+        try:
+            return Booking.objects.select_related(
+                "customer", "car", "pickup_station", "dropoff_station"
+            ).get(id=booking_id)
+        except Booking.DoesNotExist:
+            raise BookingNotFoundError(booking_id=booking_id)
+
+    def update_booking(self, *, booking_id: int, **data) -> Booking:
+        booking = self.get_booking(booking_id=booking_id)
+        update_fields = []
+        for field, value in data.items():
+            setattr(booking, field, value)
+            update_fields.append(field)
+        if update_fields:
+            update_fields.append("updated_at")
+            booking.save(update_fields=update_fields)
+        return booking
+
+    def delete_booking(self, *, booking_id: int) -> None:
+        booking = self.get_booking(booking_id=booking_id)
+        booking.delete()
 
     def cancel_booking(self, *, booking_id: int, customer) -> Booking:
         with transaction.atomic():

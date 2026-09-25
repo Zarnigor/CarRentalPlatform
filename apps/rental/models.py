@@ -1,6 +1,6 @@
 from django.db import models
 
-from apps.booking.enums import RentalStatus
+from apps.rental.enums import RentalStatus
 
 
 class Rental(models.Model):

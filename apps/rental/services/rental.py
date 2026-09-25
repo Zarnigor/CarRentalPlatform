@@ -1,26 +1,57 @@
 from decimal import Decimal
+
 from django.contrib.gis.geos import Point
 from django.db import transaction
+from django.db.models import QuerySet
 from django.utils import timezone
-from apps.booking.enums import BookingStatus, RentalStatus
-from apps.booking.exceptions import (
+
+from apps.booking.enums import BookingStatus
+from apps.booking.models import Booking
+from apps.booking.services.payment import PaymentService
+from apps.damage.models import Damage
+from apps.fleet.enums import CarStatus
+from apps.rental.enums import RentalStatus
+from apps.rental.exceptions import (
     RentalNotFoundError,
     RentalInvalidStateError,
     InvalidDropoffLocationError,
     DamageRecordInvalidError,
+    PricingRuleNotFoundError,
 )
-from apps.booking.models import Rental, Damage, Booking
-from apps.booking.services.payment import PaymentService
-from apps.fleet.enums import CarStatus
+from apps.rental.models import Rental
 
 
 class RentalService:
 
+    def list_rentals(self, *, booking_id: int | None = None, status: str | None = None) -> QuerySet[Rental]:
+        qs = Rental.objects.select_related("booking")
+        if booking_id is not None:
+            qs = qs.filter(booking_id=booking_id)
+        if status is not None:
+            qs = qs.filter(status=status)
+        return qs
+
+    def get_rental(self, *, rental_id: int) -> Rental:
+        try:
+            return Rental.objects.select_related("booking").get(id=rental_id)
+        except Rental.DoesNotExist:
+            raise RentalNotFoundError(rental_id=rental_id)
+
+    def update_rental(self, *, rental_id: int, **data) -> Rental:
+        rental = self.get_rental(rental_id=rental_id)
+        update_fields = []
+        for field, value in data.items():
+            setattr(rental, field, value)
+            update_fields.append(field)
+        if update_fields:
+            rental.save(update_fields=update_fields)
+        return rental
+
+    def delete_rental(self, *, rental_id: int) -> None:
+        rental = self.get_rental(rental_id=rental_id)
+        rental.delete()
+
     def start_rental(self, *, booking_id: int, start_odometer: Decimal) -> Rental:
-        """
-        Booking tasdiqlangan bo'lsa, Rental yaratadi va uni ACTIVE holatga o'tkazadi.
-        Car statusini IN_USE ga o'zgartiradi.
-        """
         with transaction.atomic():
             try:
                 booking = Booking.objects.select_for_update().get(id=booking_id)
@@ -55,10 +86,6 @@ class RentalService:
         dropoff_lon: float,
         damages: list[dict] | None = None,
     ) -> Rental:
-        """
-        Rentalni yakunlaydi: narxni qayta hisoblaydi, geofence'ni tekshiradi,
-        damage yozuvlarini saqlaydi, Car statusini yangilaydi.
-        """
         damages = damages or []
 
         with transaction.atomic():
@@ -75,7 +102,6 @@ class RentalService:
             booking = rental.booking
             car = booking.car
 
-            # Geofence tekshiruvi
             dropoff_point = Point(dropoff_lon, dropoff_lat, srid=4326)
             station = booking.dropoff_station
 
@@ -84,7 +110,6 @@ class RentalService:
                     rental_id=rental_id, lat=dropoff_lat, lon=dropoff_lon
                 )
 
-            # pricing
             final_price, extra_km_charged = self._calculate_final_price(
                 rental=rental, end_odometer=end_odometer
             )
@@ -95,7 +120,6 @@ class RentalService:
             rental.extra_km_charged = extra_km_charged
             rental.status = RentalStatus.COMPLETED
 
-            # Damage
             has_damage = False
             for damage_data in damages:
                 self._create_damage(rental=rental, damage_data=damage_data)
@@ -109,7 +133,6 @@ class RentalService:
                 "extra_km_charged", "status",
             ])
 
-            # 4. Car statusi + odometr
             car.odometer_km = int(end_odometer)
             if rental.status == RentalStatus.COMPLETED:
                 car.status = CarStatus.AVAILABLE
@@ -117,7 +140,6 @@ class RentalService:
                 car.status = CarStatus.MAINTENANCE
             car.save(update_fields=["status", "odometer_km"])
 
-            # 5. To'lov
             if rental.status == RentalStatus.COMPLETED:
                 payment_service = PaymentService()
                 payment_service.release_hold(booking=booking)
@@ -130,7 +152,6 @@ class RentalService:
         pricing_rule = booking.pricing_rule
 
         if pricing_rule is None:
-            from apps.booking.exceptions import PricingRuleNotFoundError
             raise PricingRuleNotFoundError(car_model_id=booking.car.id)
 
         days = max(1, (timezone.now() - rental.started_at).days)

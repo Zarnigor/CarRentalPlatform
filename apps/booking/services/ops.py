@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.booking.models import Rental
+from apps.rental.models import Rental
 from apps.fleet.models import Car
 
 
@@ -25,7 +25,7 @@ class OpsService:
         bucket_size = timedelta(hours=1) if granularity == "hour" else timedelta(days=1)
 
         # Berilgan oraliqqa tegishli barcha rentallarni bitta so'rov bilan olamiz
-        # shunda faqat bir marta dbga murojat qilinadi
+        # shunda faqat bir marta dbga murojat qilinadi (lekin userga baribir bucketlarga ajratib beramiz)
 
         rentals = Rental.objects.filter(
             Q(started_at__lt=date_to) & (Q(ended_at__gt=date_from) | Q(ended_at__isnull=True)),
