@@ -1,7 +1,6 @@
 from django.contrib.gis.db import models
 
 from apps.fleet.enums import TransmissionType, FuelType, CarStatus
-from apps.geo.models import Station
 
 
 class CarModel(models.Model):
@@ -19,7 +18,7 @@ class CarModel(models.Model):
 class Car(models.Model):
     carModel = models.ForeignKey(CarModel, on_delete=models.CASCADE)
     plate = models.CharField(max_length=20, unique=True)
-    station = models.ForeignKey(Station, on_delete=models.CASCADE)
+    station = models.ForeignKey('geo.Station', on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=CarStatus.choices, default=CarStatus.AVAILABLE)
     current_location = models.PointField(srid=4326, geography=True)
     odometer_km = models.IntegerField()
