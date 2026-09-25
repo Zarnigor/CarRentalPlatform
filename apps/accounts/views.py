@@ -1,5 +1,6 @@
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
@@ -57,7 +58,7 @@ class AuthViewSet(ActionSerializerMixin, ActionPermissionMixin, GenericViewSet):
     def token_verify(self, request):
         return self._validate_and_respond(self.get_serializer_class(), request.data)
 
-    @action(methods=["post"], detail=False, url_path="register")
+    @action(methods=["post"], detail=False, url_path="register", permission_classes=[AllowAny])
     def register(self, request):
         s = self.get_serializer(data=request.data)
         s.is_valid(raise_exception=True)
