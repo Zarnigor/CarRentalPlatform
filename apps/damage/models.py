@@ -1,6 +1,6 @@
 from django.db import models
-from apps.booking.enums import DamageType, DamageSeverity
-from apps.booking.models.rental import Rental
+from apps.damage.enums import DamageType, DamageSeverity
+from apps.rental.models import Rental
 
 
 class Damage(models.Model):

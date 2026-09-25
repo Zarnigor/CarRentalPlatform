@@ -27,6 +27,8 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'apps.accounts.apps.AccountsConfig',
     'apps.booking.apps.BookingConfig',
+    'apps.rental.apps.RentalConfig',
+    'apps.damage.apps.DamageConfig',
     'apps.fleet.apps.FleetConfig',
     'apps.geo.apps.GeoConfig',
     'apps.ops.apps.OpsConfig',
@@ -114,8 +116,13 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-   "EXCEPTION_HANDLER": "root.exception_handlers.app_exception_handler",
+    "EXCEPTION_HANDLER": "root.exception_handlers.app_exception_handler",
+
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.AcceptHeaderVersioning",
+    "DEFAULT_VERSION": "1.0",
+    "ALLOWED_VERSIONS": ["1.0", "2.0"],
 }
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
@@ -130,6 +137,8 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    "SCHEMA_PATH_PREFIX": r"/api/",
+    #"SCHEMA_PATH_PREFIX_TRIM": True,
 }
 
 

@@ -2,8 +2,10 @@ import pytest
 from datetime import datetime, timedelta, timezone, date
 from decimal import Decimal
 
-from apps.booking.enums import DamageSeverity, DamageType, RentalStatus
-from apps.booking.models import Damage, Rental
+from apps.damage.enums import DamageSeverity, DamageType
+from apps.rental.enums import RentalStatus
+from apps.rental.models import Rental
+from apps.damage.models import Damage
 
 
 def _utc(hours: int = 0) -> datetime:

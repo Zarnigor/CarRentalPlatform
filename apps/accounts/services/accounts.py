@@ -3,21 +3,29 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from root.exceptions import PermissionDeniedError, ValidationError
-from .models import Customer, CustomUser
+
+from apps.accounts.models import Customer, CustomUser
 
 
 class AccountService:
-    def register(self, *, username: str, email: str, password: str, license_no: str, license_verified_at) -> dict:
-        """Create a new user + customer profile and return JWT tokens.
-
-        Returns:
-            Dict with 'access' and 'refresh' token strings.
-        """
+    def register(
+        self,
+        *,
+        username: str,
+        email: str,
+        password: str,
+        license_no: str,
+        license_verified_at,
+        first_name: str = "",
+        last_name: str = "",
+    ) -> dict:
         with transaction.atomic():
             user = CustomUser.objects.create_user(
                 username=username,
                 email=email,
                 password=password,
+                first_name=first_name,
+                last_name=last_name,
             )
             Customer.objects.create(
                 user=user,
@@ -41,8 +49,9 @@ class AccountService:
             raise PermissionDeniedError()
 
     def update_me(self, *, user, **fields) -> None:
-        _UPDATABLE = {"email", "first_name", "last_name"}
-        updates = {k: v for k, v in fields.items() if k in _UPDATABLE}
+        updates = {
+            k: v for k, v in fields.items() if k in {"email", "first_name", "last_name"}
+        }
         if updates:
             for field, value in updates.items():
                 setattr(user, field, value)

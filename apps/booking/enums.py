@@ -33,22 +33,6 @@ class BookingStatus(models.TextChoices):
     PAYMENT_FAILED = "PAYMENT_FAILED", _("payment_failed")
 
 
-class DamageType(models.TextChoices):
-    SCRATCH = "SCRATCH", _("scratch")
-    DENT = "DENT", _("dent")
-    CRACK = "CRACK", _("crack")
-    BROKEN = "BROKEN", _("broken")
-    STAINED = "STAINED", _("stained")
-    MISSING_PART = "MISSING_PART", _("missing_part")
-    MECHANICAL = "MECHANICAL", _("mechanical")
-
-
-class DamageSeverity(models.TextChoices):
-    MINOR = "MINOR", _("minor")
-    MODERATE = "MODERATE", _("moderate")
-    SEVERE = "SEVERE", _("severe")
-
-
 class PricingScope(models.TextChoices):
     GLOBAL = "GLOBAL", _("global")
     CITY = "CITY", _("city")
@@ -65,8 +49,3 @@ class PricingRuleType(models.TextChoices):
     EARLY_BIRD = "EARLY_BIRD", _("early_bird")
     LONG_TERM = "LONG_TERM", _("long_term")
 
-
-class RentalStatus(models.TextChoices):
-    ACTIVE = 'active', 'Active'
-    COMPLETED = 'completed', 'Completed'
-    DISPUTED = 'disputed', 'Disputed'  # masalan, damage yoki geofence muammosi tufayli qo'lda tekshirish kerak

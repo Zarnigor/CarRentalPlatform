@@ -2,8 +2,8 @@ import pytest
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-from apps.booking.enums import RentalStatus
-from apps.booking.models import Rental
+from apps.rental.enums import RentalStatus
+from apps.rental.models import Rental
 from apps.booking.services.ops import OpsService
 
 
