@@ -1,10 +1,9 @@
 from django.db import models
 from apps.damage.enums import DamageType, DamageSeverity
-from apps.rental.models import Rental
 
 
 class Damage(models.Model):
-    rental = models.ForeignKey(Rental, on_delete=models.CASCADE)
+    rental = models.ForeignKey('rental.Rental', on_delete=models.CASCADE)
     damage_type = models.CharField(max_length=20, choices=DamageType.choices)
     severity = models.CharField(max_length=20, choices=DamageSeverity.choices)
     location = models.CharField(max_length=20) # damage bo'lgan joy, kapot, fara
