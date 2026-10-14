@@ -6,4 +6,4 @@ class OutboxEvent(models.Model):
     event_type = models.CharField(max_length=200)
     payload =models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
-    published_at = models.DateTimeField()
+    published_at = models.DateTimeField(null=True, blank=True, default=None)
