@@ -15,9 +15,6 @@ class OpsService:
         date_to: datetime,
         granularity: str,  # "hour" yoki "day"
     ) -> list[dict]:
-        """
-        Har bir vaqt bo'lagi (soat/kun) uchun flot band bo'lish foizini hisoblaydi.
-        """
         total_cars = Car.objects.count()
         if total_cars == 0:
             return []

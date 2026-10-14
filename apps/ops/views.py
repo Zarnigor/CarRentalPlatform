@@ -1,19 +1,27 @@
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
+from rest_framework.viewsets import GenericViewSet, ModelViewSet
+
+from apps.ops.models import PricingRule
+from apps.ops.serializers import UtilizationBucketSerializer, UtilizationQuerySerializer
 
 from .selectors import get_utilization
-from .serializers import UtilizationBucketSerializer, UtilizationQuerySerializer
+from .serializers import PricingRuleSerializer
 
 
 class OpsViewSet(GenericViewSet):
-    """GET  api/v1/ops/utilization/"""
+    """GET  api/ops/utilization/"""
 
     serializer_class = UtilizationBucketSerializer
     permission_classes = [IsAdminUser]
 
-    @action(detail=False, methods=["get"], url_path="utilization", permission_classes=[IsAdminUser])
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="utilization",
+        permission_classes=[IsAdminUser],
+    )
     def utilization(self, request):
         query = UtilizationQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
@@ -24,3 +32,8 @@ class OpsViewSet(GenericViewSet):
             granularity=d["granularity"],
         )
         return Response(UtilizationBucketSerializer(buckets, many=True).data)
+
+
+class PricingRuleViewSet(ModelViewSet):
+    queryset = PricingRule.objects.all()
+    serializer_class = PricingRuleSerializer

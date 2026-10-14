@@ -1,8 +1,6 @@
 from django.db import models
-
 from django.contrib.postgres.fields import DateTimeRangeField
-
-from apps.booking.enums import PricingScope, PricingRuleType
+from apps.ops.enums import PricingScope, PricingRuleType
 
 
 class PricingRule(models.Model):
@@ -11,7 +9,7 @@ class PricingRule(models.Model):
     rule_type = models.CharField(max_length=20, choices=PricingRuleType)
     priority = models.PositiveIntegerField(default=0)
     valid_period = DateTimeRangeField()
-    multiplier = models.PositiveIntegerField(default=1)
+    multiplier = models.DecimalField(max_digits=5, decimal_places=2, default=1)
     flat_fee = models.DecimalField(max_digits=10, decimal_places=2)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
