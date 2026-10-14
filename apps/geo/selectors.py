@@ -9,13 +9,14 @@ from .models import Station
 # rows cheaply; ORDER BY ST_Distance then triggers the KNN index scan for the
 # final sort. Without the DWithin prefilter, a large table forces a full-index
 # scan for every query.
-_DEFAULT_SEARCH_RADIUS_M = 50_000  # 50 km — wide enough for any city
+_DEFAULT_SEARCH_RADIUS_M = 50_000
 
 
 def find_nearby_stations(lat: float, lon: float, limit: int = 10):
     point = Point(lon, lat, srid=4326)
     return (
         Station.objects.select_related("city")
+        .defer("geofence", "city__boundary")
         .filter(location__distance_lte=(point, D(m=_DEFAULT_SEARCH_RADIUS_M)))
         .annotate(distance=Distance("location", point))
         .order_by("distance")[:limit]

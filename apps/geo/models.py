@@ -8,7 +8,7 @@ class City(models.Model):
 
 
 class Station(models.Model):
-    city = models.ForeignKey(City, on_delete=models.CASCADE)
+    city = models.ForeignKey(City, on_delete=models.CASCADE, related_name="stations")
     name = models.CharField(max_length=30)
     location = models.PointField(srid=4326, geography=True)
     capacity = models.IntegerField()

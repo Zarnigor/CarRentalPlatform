@@ -1,5 +1,5 @@
-from core.exceptions import NotFoundError, ValidationError
-
+from root.exceptions import NotFoundError, ValidationError
+from django.utils.translation import gettext_lazy as _
 
 class CityNotFoundError(NotFoundError):
     default_message = "Shahar topilmadi"
@@ -21,3 +21,9 @@ class InvalidCoordinatesError(ValidationError):
     """lat/lon qiymatlari yaroqsiz yoki yo'q (masalan lat > 90, yoki umuman berilmagan)."""
     default_message = "Koordinatalar (lat/lon) yaroqsiz"
     error_code = "invalid_coordinates"
+
+
+class InvalidBoundaryError(ValidationError):
+    default_message =  _("Geometry turi Polygon yoki MultiPolygon bo'lishi kerak.")
+    error_code = 'invalid_boundary'
+
