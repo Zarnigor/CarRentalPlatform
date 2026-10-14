@@ -3,22 +3,23 @@ from decimal import Decimal
 
 from rest_framework.test import APIClient
 
+from apps.booking.enums import BookingStatus
 from apps.rental.enums import RentalStatus
 from apps.rental.models import Rental
 
 
-LIST_URL = "/api/rentals/"
 
+LIST_URL = "/api/rentals/"
+START_URL = "/api/rentals/start/"
 
 def detail_url(rental_id):
     return f"/api/rentals/{rental_id}/"
 
 
+
+
 def finish_url(rental_id):
     return f"/api/rentals/{rental_id}/finish/"
-
-
-# ── fixtures ──────────────────────────────────────────────────────────────────
 
 @pytest.fixture
 def api_client():
@@ -35,8 +36,6 @@ def _dropoff_inside(station):
     centroid = station.geofence.centroid
     return centroid.y, centroid.x  # lat, lon
 
-
-# ── list ──────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
 class TestListRentalsView:
@@ -110,58 +109,59 @@ class TestListRentalsView:
         assert response.data == []
 
 
-# ── create (start) ────────────────────────────────────────────────────────────
-
 @pytest.mark.django_db
-class TestCreateRentalView:
+class TestStartRentalView:
 
     def test_returns_201_on_success(self, auth_client, confirmed_booking):
         payload = {"booking_id": confirmed_booking.id, "start_odometer": "10000.00"}
-        response = auth_client.post(LIST_URL, payload)
+        response = auth_client.post(START_URL, payload)
         assert response.status_code == 201
 
     def test_response_has_active_status(self, auth_client, confirmed_booking):
         payload = {"booking_id": confirmed_booking.id, "start_odometer": "10000.00"}
-        response = auth_client.post(LIST_URL, payload)
+        response = auth_client.post(START_URL, payload)
         assert response.data["status"] == RentalStatus.ACTIVE
 
     def test_response_has_correct_booking_id(self, auth_client, confirmed_booking):
         payload = {"booking_id": confirmed_booking.id, "start_odometer": "10000.00"}
-        response = auth_client.post(LIST_URL, payload)
+        response = auth_client.post(START_URL, payload)
         assert response.data["booking"] == confirmed_booking.id
 
     def test_rental_saved_to_db(self, auth_client, confirmed_booking):
         payload = {"booking_id": confirmed_booking.id, "start_odometer": "10000.00"}
-        auth_client.post(LIST_URL, payload)
+        auth_client.post(START_URL, payload)
         assert Rental.objects.filter(booking=confirmed_booking).exists()
 
     def test_returns_400_when_booking_id_missing(self, auth_client):
-        response = auth_client.post(LIST_URL, {"start_odometer": "10000.00"})
+        response = auth_client.post(START_URL, {"start_odometer": "10000.00"})
         assert response.status_code == 400
 
     def test_returns_400_when_start_odometer_missing(self, auth_client, confirmed_booking):
-        response = auth_client.post(LIST_URL, {"booking_id": confirmed_booking.id})
+        response = auth_client.post(START_URL, {"booking_id": confirmed_booking.id})
         assert response.status_code == 400
 
     def test_returns_404_for_nonexistent_booking(self, auth_client):
-        response = auth_client.post(LIST_URL, {"booking_id": 99999, "start_odometer": "0.00"})
+        response = auth_client.post(START_URL, {"booking_id": 99999, "start_odometer": "0.00"})
         assert response.status_code == 404
 
     def test_returns_409_when_booking_not_confirmed(self, auth_client, confirmed_booking):
-        from apps.booking.enums import BookingStatus
         confirmed_booking.status = BookingStatus.PENDING
         confirmed_booking.save(update_fields=["status"])
         payload = {"booking_id": confirmed_booking.id, "start_odometer": "10000.00"}
-        response = auth_client.post(LIST_URL, payload)
+        response = auth_client.post(START_URL, payload)
         assert response.status_code == 409
 
     def test_returns_401_without_authentication(self, api_client, confirmed_booking):
         payload = {"booking_id": confirmed_booking.id, "start_odometer": "10000.00"}
-        response = api_client.post(LIST_URL, payload)
+        response = api_client.post(START_URL, payload)
         assert response.status_code == 401
 
+    def test_create_endpoint_not_allowed(self, auth_client, confirmed_booking):
+        payload = {"booking_id": confirmed_booking.id, "start_odometer": "10000.00"}
+        response = auth_client.post(LIST_URL, payload)
+        assert response.status_code == 405
 
-# ── retrieve ──────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.django_db
 class TestRetrieveRentalView:
@@ -197,8 +197,6 @@ class TestRetrieveRentalView:
         response = api_client.get(detail_url(rental.id))
         assert response.status_code == 401
 
-
-# ── update (PUT) ──────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
 class TestUpdateRentalView:
@@ -258,7 +256,6 @@ class TestUpdateRentalView:
         assert response.status_code == 404
 
 
-# ── destroy ───────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
 class TestDestroyRentalView:
@@ -291,8 +288,6 @@ class TestDestroyRentalView:
         response = api_client.delete(detail_url(rental.id))
         assert response.status_code == 401
 
-
-# ── finish ────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
 class TestFinishRentalView:

@@ -9,7 +9,6 @@ from rest_framework_simplejwt.serializers import (
     TokenVerifySerializer,
 )
 
-from .mixins import ActionPermissionMixin, ActionSerializerMixin
 from .models import Customer, CustomUser
 from .serializers import (
     CustomerReadSerializer,
@@ -24,19 +23,8 @@ from .services import AccountService
 from .utils import _me_data
 
 
-class AuthViewSet(ActionSerializerMixin, ActionPermissionMixin, GenericViewSet):
+class AuthViewSet(GenericViewSet):
     queryset = CustomUser.objects.none()
-
-    serializer_action_map = {
-        "token": CustomTokenObtainPairSerializer,
-        "token_refresh": TokenRefreshSerializer,
-        "token_verify": TokenVerifySerializer,
-        "register": RegisterSerializer,
-        "logout": LogoutSerializer,
-    }
-    default_serializer_class = MeSerializer
-
-    public_actions = {"token", "token_refresh", "token_verify", "register"}
 
     def _validate_and_respond(self, serializer_class, data):
         s = serializer_class(data=data)
@@ -46,32 +34,32 @@ class AuthViewSet(ActionSerializerMixin, ActionPermissionMixin, GenericViewSet):
             raise InvalidToken(exc.args[0])
         return Response(s.validated_data)
 
-    @action(methods=["post"], detail=False, url_path="token")
+    @action(methods=["post"], detail=False, url_path="token", permission_classes=[AllowAny], serializer_class=CustomTokenObtainPairSerializer)
     def token(self, request):
         return self._validate_and_respond(self.get_serializer_class(), request.data)
 
-    @action(methods=["post"], detail=False, url_path="token/refresh")
+    @action(methods=["post"], detail=False, url_path="token/refresh", permission_classes=[AllowAny], serializer_class=TokenRefreshSerializer)
     def token_refresh(self, request):
         return self._validate_and_respond(self.get_serializer_class(), request.data)
 
-    @action(methods=["post"], detail=False, url_path="token/verify")
+    @action(methods=["post"], detail=False, url_path="token/verify", permission_classes=[AllowAny], serializer_class=TokenVerifySerializer)
     def token_verify(self, request):
         return self._validate_and_respond(self.get_serializer_class(), request.data)
 
-    @action(methods=["post"], detail=False, url_path="register", permission_classes=[AllowAny])
+    @action(methods=["post"], detail=False, url_path="register", permission_classes=[AllowAny], serializer_class=RegisterSerializer)
     def register(self, request):
         s = self.get_serializer(data=request.data)
         s.is_valid(raise_exception=True)
         return Response(AccountService().register(**s.validated_data), status=201)
 
-    @action(methods=["post"], detail=False, url_path="logout")
+    @action(methods=["post"], detail=False, url_path="logout", serializer_class=LogoutSerializer)
     def logout(self, request):
         s = self.get_serializer(data=request.data)
         s.is_valid(raise_exception=True)
         AccountService().logout(refresh_token=s.validated_data["refresh"])
         return Response(status=204)
 
-    @action(methods=["get", "patch"], detail=False, url_path="me")
+    @action(methods=["get", "patch"], detail=False, url_path="me", serializer_class=MeSerializer)
     def me(self, request):
         if request.method == "PATCH":
             s = self.get_serializer(data=request.data, partial=True)

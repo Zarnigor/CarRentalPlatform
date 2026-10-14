@@ -18,8 +18,6 @@ from apps.rental.models import Rental
 from apps.rental.services import RentalService
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────
-
 def _dropoff_inside(station):
     centroid = station.geofence.centroid
     return centroid.y, centroid.x  # lat, lon
@@ -33,8 +31,6 @@ _DAMAGE = {
     "estimated_cost": Decimal("50000.00"),
 }
 
-
-# ── list ──────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
 class TestListRentals:
@@ -91,8 +87,6 @@ class TestListRentals:
         assert qs.count() == 0
 
 
-# ── get ───────────────────────────────────────────────────────────────────────
-
 @pytest.mark.django_db
 class TestGetRental:
 
@@ -108,7 +102,6 @@ class TestGetRental:
             RentalService().get_rental(rental_id=99999)
 
 
-# ── update ────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
 class TestUpdateRental:
@@ -159,8 +152,6 @@ class TestUpdateRental:
             RentalService().update_rental(rental_id=99999, status=RentalStatus.COMPLETED)
 
 
-# ── delete ────────────────────────────────────────────────────────────────────
-
 @pytest.mark.django_db
 class TestDeleteRental:
 
@@ -175,8 +166,6 @@ class TestDeleteRental:
         with pytest.raises(RentalNotFoundError):
             RentalService().delete_rental(rental_id=99999)
 
-
-# ── start ─────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
 class TestStartRental:
@@ -226,8 +215,6 @@ class TestStartRental:
                 start_odometer=Decimal("10000.00"),
             )
 
-
-# ── finish ────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
 class TestFinishRental:

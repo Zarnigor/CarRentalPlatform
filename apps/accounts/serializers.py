@@ -14,7 +14,8 @@ from .models import Customer, CustomUser
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
-        token = super().get_token(user)
+        cls.token = super().get_token(user)
+        token = cls.token
         token["role"] = "staff" if user.is_staff else "customer"
         return token
 
@@ -66,6 +67,12 @@ class MeSerializer(serializers.Serializer):
     license_no = serializers.CharField(read_only=True, default=None)
     tier = serializers.CharField(read_only=True, default=None)
     risk_score = serializers.FloatField(read_only=True, default=None)
+
+    def validate_email(self, value):
+        user = self.context["request"].user
+        if CustomUser.objects.filter(email__iexact=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("Bu email band.")
+        return value
 
 
 class LogoutSerializer(serializers.Serializer):

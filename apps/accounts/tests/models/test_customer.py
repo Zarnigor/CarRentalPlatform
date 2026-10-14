@@ -20,6 +20,19 @@ class TestCustomer:
             license_verified_at=date(2023, 6, 1),
         )
         assert customer.pk is not None
+        assert customer.passport_code is None
+
+    def test_creates_customer_with_passport_code(self, user):
+        customer = Customer.objects.create(
+            user=user,
+            license_no="DL99887",
+            license_verified_at=date(2023, 6, 1),
+            passport_code="AB1234567",
+        )
+        customer.refresh_from_db()
+        assert customer.passport_code == "AB1234567"
+
+        assert user.pk is not None
 
     def test_risk_score_defaults_to_zero(self, user):
         customer = Customer.objects.create(
@@ -60,3 +73,9 @@ class TestCustomer:
     def test_license_no_max_length(self):
         field = Customer._meta.get_field("license_no")
         assert field.max_length == 20
+
+
+    def test_passport_code_max_length(self):
+        field = Customer._meta.get_field("passport_code")
+        assert field.max_length == 20
+

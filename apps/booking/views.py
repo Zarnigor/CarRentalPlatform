@@ -1,3 +1,5 @@
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -17,13 +19,13 @@ from root.exceptions import PermissionDeniedError
 
 class BookingViewSet(ModelViewSet):
     """
-    list           GET    /api/v1/bookings/             — list (filter: ?customer_id= ?status= ?car_id=)
-    create         POST   /api/v1/bookings/             — create (idempotent)
-    retrieve       GET    /api/v1/bookings/{id}/        — detail
-    update         PUT    /api/v1/bookings/{id}/        — full update
-    partial_update PATCH  /api/v1/bookings/{id}/        — partial update
-    destroy        DELETE /api/v1/bookings/{id}/        — delete
-    cancel         POST   /api/v1/bookings/{id}/cancel/ — cancel
+    list           GET    /api/bookings/             — list (filter: ?customer_id= ?status= ?car_id=)
+    create         POST   /api/bookings/             — create (idempotent)
+    retrieve       GET    /api/bookings/{id}/        — detail
+    update         PUT    /api/bookings/{id}/        — full update
+    partial_update PATCH  /api/bookings/{id}/        — partial update
+    destroy        DELETE /api/bookings/{id}/        — delete
+    cancel         POST   /api/bookings/{id}/cancel/ — cancel
     """
 
     queryset = Booking.objects.select_related(
@@ -34,12 +36,33 @@ class BookingViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.action == "create":
-            return BookingCreateSerializer
-        if self.action in ("update", "partial_update"):
-            return BookingUpdateSerializer
-        return BookingDetailSerializer
+        match self.action:
+            case "create":
+                return BookingCreateSerializer
+            case "update" | "partial_update":
+                return BookingUpdateSerializer
+            case _:
+                return BookingDetailSerializer
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="customer_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Mijoz ID",
+            ),
+            OpenApiParameter(
+                name="status",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                enum=["pending", "confirmed", "cancelled"],
+            ),
+            OpenApiParameter(
+                name="car_id", type=OpenApiTypes.INT, location=OpenApiParameter.QUERY
+            ),
+        ],
+    )
     def list(self, request, *args, **kwargs):
         customer_id = request.query_params.get("customer_id")
         status = request.query_params.get("status")
@@ -63,12 +86,19 @@ class BookingViewSet(ModelViewSet):
             resp["Idempotency-Replayed"] = "true"
         return resp
 
-    def retrieve(self, request, *args, **kwargs):
-        booking = BookingService().get_booking(booking_id=kwargs["id"])
-        return Response(BookingDetailSerializer(booking).data)
+    def get_object(self):
+        return BookingService().get_booking(booking_id=self.kwargs["id"])
+
+    # def retrieve(self, request, *args, **kwargs):
+    #     booking = BookingService().get_booking(booking_id=kwargs["id"])
+    #     return Response(BookingDetailSerializer(booking).data)
 
     def update(self, request, *args, **kwargs):
-        s = BookingUpdateSerializer(data=request.data)
+        s = BookingUpdateSerializer(
+            data=request.data,
+            instance=self.get_object(),
+            context=self.get_serializer_context()
+        )
         s.is_valid(raise_exception=True)
         booking = BookingService().update_booking(booking_id=kwargs["id"], **s.validated_data)
         return Response(BookingDetailSerializer(booking).data)

@@ -3,18 +3,43 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from django.contrib.gis.geos import Point, Polygon, MultiPolygon
-
+from django.db import connection
 from psycopg2.extras import DateTimeTZRange
 
 from apps.accounts.models import CustomUser, Customer
 from apps.booking.enums import BookingStatus
-from apps.booking.models import Booking, PricingRule
+from apps.booking.models import Booking
+from apps.ops.models import PricingRule
 from apps.fleet.models import Car, CarModel
 from apps.fleet.enums import CarStatus
 from apps.geo.models import City, Station
 from apps.rental.models import Rental
 from apps.rental.enums import RentalStatus
+import pytest
+from django.db.backends.postgresql.base import DatabaseWrapper
 
+# Django bazani yaratishni boshlashidan oldin btree_gist ni yoqishga majburlash
+original_prepare_database = DatabaseWrapper.prepare_database
+
+def patched_prepare_database(self):
+    original_prepare_database(self)
+    with self.cursor() as cursor:
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS btree_gist;")
+
+DatabaseWrapper.prepare_database = patched_prepare_database
+
+# ── SIZNING MAVJUD IMPORTLARINGIZ VA FIXTURE'LARINGIZ SHU YERDAN DAVOM ETADI ──
+import pytest
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+# ... qolgan barcha kodlaringiz o'zgarishsiz qolsin
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_postgres_extensions(django_db_setup, django_db_blocker):
+    """Test bazasi yaratilishi bilan btree_gist ni majburiy yoqadi."""
+    with django_db_blocker.unblock():
+        with connection.cursor() as cursor:
+            cursor.execute("CREATE EXTENSION IF NOT EXISTS btree_gist;")
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -68,7 +93,7 @@ def car_model() -> CarModel:
 
 @pytest.fixture
 def pricing_rule() -> PricingRule:
-    from apps.booking.enums import PricingScope, PricingRuleType
+    from apps.ops.enums import PricingScope, PricingRuleType
     valid = DateTimeTZRange(
         _utc(2024, 1, 1),
         _utc(2030, 1, 1),

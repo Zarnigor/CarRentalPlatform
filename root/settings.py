@@ -91,6 +91,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTH_USER_MODEL='accounts.CustomUser'
+
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'Asia/Tashkent'
@@ -125,7 +127,7 @@ REST_FRAMEWORK = {
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -133,12 +135,19 @@ SIMPLE_JWT = {
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "AutoRent API",
-    "DESCRIPTION": "Car rental platform backend — search, booking, rentals, ops.",
+    "DESCRIPTION": "Car rental platform backend",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": r"/api/",
     #"SCHEMA_PATH_PREFIX_TRIM": True,
+
+    "ENUM_NAME_OVERRIDES": {
+        "BookingStatusEnum": "apps.booking.enums.BookingStatus",
+        "CarStatusEnum": "apps.fleet.enums.CarStatus",
+        "RentalStatusEnum": "apps.rental.enums.RentalStatus",
+        "PaymentStatusEnum": "apps.booking.enums.PaymentStatus"
+    },
 }
 
 
