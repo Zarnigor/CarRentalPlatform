@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -39,6 +40,7 @@ class CarViewSet(ModelViewSet):
             return CarSearchResultSerializer
         return CarReadSerializer
 
+    @extend_schema(parameters=[CarAvailabilityQuerySerializer])
     @action(
         detail=True,
         methods=["get"],
@@ -54,6 +56,7 @@ class CarViewSet(ModelViewSet):
         )
         return Response(CarAvailabilitySerializer({"available": available}).data)
 
+    @extend_schema(parameters=[CarSearchQuerySerializer])
     @action(
         detail=False, methods=["get"], url_path="search", permission_classes=[AllowAny]
     )

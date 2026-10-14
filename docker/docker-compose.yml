@@ -45,17 +45,17 @@ services:
 
   api:
     <<: *app-base
-    command: uv run python manage.py runserver 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8000
     ports:
       - "8000:8000"
 
   worker:
     <<: *app-base
-    command: uv run celery -A root worker --loglevel=info
+    command: celery -A root worker --loglevel=info
 
   beat:
     <<: *app-base
-    command: uv run celery -A root beat --loglevel=info
+    command: celery -A root beat --loglevel=info
 
 volumes:
   pgdata:

@@ -1,8 +1,9 @@
 from django.db import models
 from apps.damage.enums import DamageType, DamageSeverity
+from root.mixins import SoftDeleteMixin
 
 
-class Damage(models.Model):
+class Damage(SoftDeleteMixin):
     rental = models.ForeignKey('rental.Rental', on_delete=models.CASCADE)
     damage_type = models.CharField(max_length=20, choices=DamageType.choices)
     severity = models.CharField(max_length=20, choices=DamageSeverity.choices)

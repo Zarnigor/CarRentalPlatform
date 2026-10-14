@@ -8,7 +8,8 @@ from psycopg2.extras import DateTimeTZRange
 
 from apps.accounts.models import CustomUser, Customer
 from apps.booking.enums import BookingStatus
-from apps.booking.models import Booking, PricingRule
+from apps.booking.models import Booking
+from apps.ops.models import PricingRule
 from apps.fleet.models import Car, CarModel
 from apps.fleet.enums import CarStatus
 from apps.geo.models import City, Station

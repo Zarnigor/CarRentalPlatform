@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from apps.booking.enums import BookingStatus
 from apps.booking.models import Booking
+from apps.booking.services.outbox import emit
 from apps.booking.services.payment import PaymentService
 from apps.damage.models import Damage
 from apps.fleet.enums import CarStatus
@@ -22,8 +23,12 @@ from apps.rental.models import Rental
 
 
 class RentalService:
-
-    def list_rentals(self, *, booking_id: int | None = None, status: str | None = None) -> QuerySet[Rental]:
+    def list_rentals(
+        self,
+        *,
+        booking_id: int | None = None,
+        status: str | None = None,
+    ) -> QuerySet:
         qs = Rental.objects.select_related("booking")
         if booking_id is not None:
             qs = qs.filter(booking_id=booking_id)
@@ -76,6 +81,12 @@ class RentalService:
             car.status = CarStatus.IN_USE
             car.save(update_fields=["status"])
 
+            emit(
+                aggregate_type="rental",
+                aggregate_id=rental.id,
+                event_type="rental.started",
+                payload={"rental_id": rental.id, "booking_id": booking.id, "start_odometer": str(start_odometer)},
+            )
             return rental
 
     def finish_rental(
@@ -145,6 +156,18 @@ class RentalService:
                 payment_service.release_hold(booking=booking)
                 payment_service.capture_final_amount(booking=booking, final_amount=rental.final_price)
 
+            emit(
+                aggregate_type="rental",
+                aggregate_id=rental.id,
+                event_type="rental.finished",
+                payload={
+                    "rental_id": rental.id,
+                    "booking_id": booking.id,
+                    "status": rental.status,
+                    "final_price": str(rental.final_price),
+                    "end_odometer": str(end_odometer),
+                },
+            )
             return rental
 
     def _calculate_final_price(self, *, rental: Rental, end_odometer: Decimal) -> tuple[Decimal, Decimal]:

@@ -61,10 +61,10 @@ class CarReadSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_longitude(self, obj):
+    def get_longitude(self, obj) -> float | None:
         return obj.current_location.x if obj.current_location else None
 
-    def get_latitude(self, obj):
+    def get_latitude(self, obj) -> float | None:
         return obj.current_location.y if obj.current_location else None
 
 
@@ -78,7 +78,7 @@ class CarSearchResultSerializer(CarReadSerializer):
         fields = CarReadSerializer.Meta.fields + ["station_name", "distance_m"]
         read_only_fields = fields
 
-    def get_distance_m(self, obj):
+    def get_distance_m(self, obj) -> float:
         return round(obj.distance.m, 1)
 
 

@@ -4,8 +4,8 @@ from decimal import Decimal
 
 from psycopg2.extras import DateTimeTZRange
 
-from apps.booking.enums import PricingRuleType, PricingScope
-from apps.booking.models import PricingRule
+from apps.ops.enums import PricingRuleType, PricingScope
+from apps.ops.models import PricingRule
 
 
 def _utc(hours: int = 0) -> datetime:

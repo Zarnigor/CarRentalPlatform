@@ -1,15 +1,8 @@
 from django.db import models
-
 from apps.accounts.models import CustomUser
 from apps.fleet.models import Car
 from apps.geo.models import Station
-
-
-class RelocationPlan(models.Model):
-    created_by = models.ForeignKey(CustomUser,on_delete=models.CASCADE)
-    total_driver_km = models.DecimalField(max_digits=10,decimal_places=2)
-    algorith_used = models.CharField(max_length=200)
-    created_at = models.DateTimeField(auto_now_add=True)
+from apps.ops.models.relocation_plan import RelocationPlan
 
 
 class RelocationTask(models.Model):
@@ -21,6 +14,3 @@ class RelocationTask(models.Model):
     status = models.CharField(max_length=200)
     assigned_to = models.ForeignKey(CustomUser,on_delete=models.CASCADE, related_name="assigned_relocation_tasks")
     completed_at = models.DateTimeField(auto_now_add=True)
-
-
-

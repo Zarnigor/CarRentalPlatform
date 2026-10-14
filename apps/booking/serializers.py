@@ -10,7 +10,7 @@ class BookingCreateSerializer(serializers.Serializer):
     dropoff_station_id = serializers.IntegerField()
     period_start = serializers.DateTimeField()
     period_end = serializers.DateTimeField()
-    total_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    #total_price = serializers.DecimalField(max_digits=10, decimal_places=2)
 
     def validate(self, data):
         if data["period_start"] >= data["period_end"]:
@@ -26,7 +26,7 @@ class BookingUpdateSerializer(serializers.Serializer):
     dropoff_station_id = serializers.IntegerField(required=False)
     period_start = serializers.DateTimeField(required=False)
     period_end = serializers.DateTimeField(required=False)
-    total_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    #total_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     status = serializers.ChoiceField(choices=BookingStatus.choices, required=False)
 
     def validate(self, data):
@@ -46,11 +46,14 @@ class BookingUpdateSerializer(serializers.Serializer):
 
 
 class BookingDetailSerializer(serializers.ModelSerializer):
+    period_start = serializers.DateTimeField(source="period.lower", read_only=True)
+    period_upper = serializers.DateTimeField(source="period.upper", read_only=True)
+
     class Meta:
         model = Booking
         fields = [
             "id", "car", "customer", "pickup_station", "dropoff_station",
-            "period", "status", "total_price", "idempotency_key",
+            "period_start", "period_upper", "status", "total_price", "idempotency_key",
             "hold_id", "created_at", "updated_at",
         ]
         read_only_fields = fields

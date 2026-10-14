@@ -1,29 +1,36 @@
-from django.db import transaction, IntegrityError
+from decimal import Decimal
+
+from django.db import IntegrityError, transaction
 from django.db.models import QuerySet
+import math
 from psycopg2.extras import DateTimeTZRange
 
 from apps.accounts.models import Customer
-from apps.booking.models import Booking
 from apps.booking.enums import BookingStatus
-from apps.booking.services.payment import PaymentService
-from apps.fleet.models import Car
 from apps.booking.exceptions import (
-    CarNotAvailableForPeriodError,
-    BookingNotFoundError,
     BookingNotCancellableError,
+    BookingNotFoundError,
+    CarNotAvailableForPeriodError,
 )
+from apps.booking.models import Booking
+from apps.booking.services.outbox import emit
+from apps.booking.services.payment import PaymentService
+from apps.fleet.exceptions import CarNotFoundError
+from apps.fleet.models import Car
+from apps.ops.models import PricingRule
+from apps.rental.exceptions import PricingRuleNotFoundError
 from root.exceptions import PermissionDeniedError
 
 
 class BookingService:
     def create_booking(
-        self, *,
+        self,
+        *,
         customer,
         car_id: int,
         pickup_station_id: int,
         dropoff_station_id: int,
         period: DateTimeTZRange,
-        total_price,
         idempotency_key,
     ) -> tuple[Booking, bool]:
         """
@@ -35,46 +42,74 @@ class BookingService:
         existing = Booking.objects.filter(idempotency_key=idempotency_key).first()
         if existing:
             return existing, True
-
         try:
             with transaction.atomic():
-                car = Car.objects.select_for_update().get(id=car_id)
+                try:
+                    car = Car.objects.select_for_update().get(id=car_id)
+                except Car.DoesNotExist:
+                    raise CarNotFoundError(car_id=car_id)
+
+                pricing_rule = (
+                    PricingRule.objects.filter(is_active=True, valid_period__overlap=period)
+                    .order_by("-priority")
+                    .first()
+                )
+                if pricing_rule is None:
+                    raise PricingRuleNotFoundError(car_model_id=car.carModel_id)
+
+                hold_amount = self._calculate_hold_amount(rule=pricing_rule, period=period)
 
                 booking = Booking.objects.create(
                     customer=customer,
                     car=car,
+                    pricing_rule=pricing_rule,
                     pickup_station_id=pickup_station_id,
                     dropoff_station_id=dropoff_station_id,
                     period=period,
                     status=BookingStatus.PENDING,
-                    total_price=total_price,
+                    total_price=hold_amount,
                     idempotency_key=idempotency_key,
                 )
 
-                PaymentService().create_hold(booking=booking, amount=total_price)
+                PaymentService().create_hold(booking=booking, amount=hold_amount)
 
                 booking.status = BookingStatus.CONFIRMED
                 booking.save(update_fields=["status", "updated_at"])
 
+                emit(
+                    aggregate_type="booking",
+                    aggregate_id=booking.id,
+                    event_type="booking.created",
+                    payload={
+                        "booking_id": booking.id,
+                        "customer_id": booking.customer_id,
+                        "car_id": booking.car_id,
+                        "status": booking.status,
+                        "total_price": str(booking.total_price),
+                    },
+                )
                 return booking, False
 
         except IntegrityError as e:
-            if 'exclude_overlapping_bookings' in str(e):
+            if "exclude_overlapping_bookings" in str(e):
                 raise CarNotAvailableForPeriodError(car_id=car_id, period=str(period))
-            if 'idempotency_key' in str(e):
-                existing = Booking.objects.get(idempotency_key=idempotency_key)
-                return existing, True
+            if "idempotency_key" in str(e):
+                return Booking.objects.get(idempotency_key=idempotency_key), True
             raise
 
+    def _calculate_hold_amount(self, *, rule: PricingRule, period: DateTimeTZRange) -> Decimal:
+        seconds = (period.upper - period.lower).total_seconds()
+        days = max(1, math.ceil(seconds / 86400))  # yuqoriga yaxlitlanadi
+        return rule.price_per_day * days * rule.multiplier + rule.flat_fee
 
     def create_booking_from_user(
-        self, *,
+        self,
+        *,
         user,
         car_id: int,
         pickup_station_id: int,
         dropoff_station_id: int,
         period: DateTimeTZRange,
-        total_price,
         idempotency_key,
         **_,
     ) -> tuple[Booking, bool]:
@@ -88,12 +123,13 @@ class BookingService:
             pickup_station_id=pickup_station_id,
             dropoff_station_id=dropoff_station_id,
             period=period,
-            total_price=total_price,
+            #total_price=total_price,
             idempotency_key=idempotency_key,
         )
 
     def list_bookings(
-        self, *,
+        self,
+        *,
         customer_id: int | None = None,
         status: str | None = None,
         car_id: int | None = None,
@@ -131,6 +167,12 @@ class BookingService:
     def delete_booking(self, *, booking_id: int) -> None:
         booking = self.get_booking(booking_id=booking_id)
         booking.delete()
+        emit(
+            aggregate_type="booking",
+            aggregate_id=booking_id,
+            event_type="booking.deleted",
+            payload={"booking_id": booking_id},
+        )
 
     def cancel_booking(self, *, booking_id: int, customer) -> Booking:
         with transaction.atomic():
@@ -149,4 +191,10 @@ class BookingService:
 
             PaymentService().cancel_hold(booking=booking)
 
+            emit(
+                aggregate_type="booking",
+                aggregate_id=booking_id,
+                event_type="booking.cancelled",
+                payload={"booking_id": booking_id, "customer_id": booking.customer_id},
+            )
             return booking

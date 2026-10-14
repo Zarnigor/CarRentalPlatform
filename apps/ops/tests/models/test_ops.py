@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from apps.rental.enums import RentalStatus
 from apps.rental.models import Rental
-from apps.booking.services.ops import OpsService
+from apps.ops.services import OpsService
 
 
 def _utc(hours_offset: int = 0) -> datetime:
