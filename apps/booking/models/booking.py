@@ -8,14 +8,15 @@ from apps.booking.enums import BookingStatus
 from apps.fleet.models import Car
 from apps.geo.models import Station
 from django.contrib.postgres.fields import DateTimeRangeField
+from root.mixins import SoftDeleteMixin
 
 
-class Booking(models.Model):
+class Booking(SoftDeleteMixin):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     car = models.ForeignKey(Car, on_delete=models.CASCADE)
     pickup_station = models.ForeignKey(Station, on_delete=models.CASCADE, related_name="pickup_bookings",)
     dropoff_station = models.ForeignKey(Station, on_delete=models.CASCADE, related_name="dropoff_bookings",)
-    pricing_rule = models.ForeignKey('booking.PricingRule', on_delete=models.PROTECT, null=True, blank=True)
+    pricing_rule = models.ForeignKey('ops.PricingRule', on_delete=models.PROTECT, null=True, blank=True)
     period = DateTimeRangeField()
     status = models.CharField(max_length=20, choices=BookingStatus.choices, default=BookingStatus.PENDING)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)

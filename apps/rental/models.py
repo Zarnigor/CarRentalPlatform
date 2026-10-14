@@ -1,9 +1,10 @@
 from django.db import models
 
 from apps.rental.enums import RentalStatus
+from root.mixins import SoftDeleteMixin
 
 
-class Rental(models.Model):
+class Rental(SoftDeleteMixin):
     booking = models.ForeignKey('booking.Booking', on_delete=models.CASCADE, related_name="rentals")
     started_at = models.DateTimeField(null=True)
     ended_at = models.DateTimeField(null=True)
