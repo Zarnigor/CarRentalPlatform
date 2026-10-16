@@ -13,3 +13,9 @@ class Rental(SoftDeleteMixin):
     status = models.CharField(max_length=20, choices=RentalStatus.choices, default=RentalStatus.ACTIVE)
     final_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     extra_km_charged = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["started_at", "ended_at"], name="rental_time_range_idx"),
+            models.Index(fields=["status"], name="rental_status_idx"),
+        ]
