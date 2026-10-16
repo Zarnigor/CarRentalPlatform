@@ -6,6 +6,7 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from apps.geo.models import City, Station
 from apps.geo.selectors import find_nearby_stations
+from root.throttling import StationsNearbyThrottle
 from apps.geo.serializers import (
     CitySerializer,
     NearbyStationsQuerySerializer,
@@ -23,7 +24,8 @@ class StationNearbyViewSet(GenericViewSet):
 
     @extend_schema(parameters=[NearbyStationsQuerySerializer])
     @action(
-        detail=False, methods=["get"], url_path="nearby", permission_classes=[AllowAny]
+        detail=False, methods=["get"], url_path="nearby",
+        permission_classes=[AllowAny], throttle_classes=[StationsNearbyThrottle],
     )
     def nearby(self, request):
         query = NearbyStationsQuerySerializer(data=request.query_params)

@@ -132,6 +132,8 @@ REST_FRAMEWORK = {
         "booking_create": "5/min",
         "booking_cancel": "10/min",
         "rental_finish": "3/min",
+        "car_availability": "30/min",
+        "stations_nearby": "20/min",
     },
 }
 

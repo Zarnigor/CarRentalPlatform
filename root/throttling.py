@@ -24,3 +24,13 @@ class BookingCancelThrottle(UserRateThrottle):
 class RentalFinishThrottle(UserRateThrottle):
     """3 finish calls per minute per authenticated user — prevents duplicate payment captures."""
     scope = "rental_finish"
+
+
+class CarAvailabilityThrottle(AnonRateThrottle):
+    """30 checks per minute per IP — prevents bulk calendar scraping across car IDs."""
+    scope = "car_availability"
+
+
+class StationsNearbyThrottle(AnonRateThrottle):
+    """20 lookups per minute per IP — protects PostGIS KNN query from coordinate flooding."""
+    scope = "stations_nearby"
