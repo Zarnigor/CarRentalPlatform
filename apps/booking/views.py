@@ -15,6 +15,7 @@ from apps.booking.serializers import (
 from apps.booking.services import BookingService
 from apps.booking.utils import require_idempotency_key
 from root.exceptions import PermissionDeniedError
+from root.throttling import BookingCancelThrottle, BookingCreateThrottle
 
 
 class BookingViewSet(ModelViewSet):
@@ -43,6 +44,13 @@ class BookingViewSet(ModelViewSet):
                 return BookingUpdateSerializer
             case _:
                 return BookingDetailSerializer
+
+    def get_throttles(self):
+        if self.action == "create":
+            return [BookingCreateThrottle()]
+        if self.action == "cancel":
+            return [BookingCancelThrottle()]
+        return super().get_throttles()
 
     @extend_schema(
         parameters=[
@@ -88,10 +96,6 @@ class BookingViewSet(ModelViewSet):
 
     def get_object(self):
         return BookingService().get_booking(booking_id=self.kwargs["id"])
-
-    # def retrieve(self, request, *args, **kwargs):
-    #     booking = BookingService().get_booking(booking_id=kwargs["id"])
-    #     return Response(BookingDetailSerializer(booking).data)
 
     def update(self, request, *args, **kwargs):
         s = BookingUpdateSerializer(
