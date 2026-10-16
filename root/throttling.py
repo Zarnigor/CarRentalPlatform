@@ -19,3 +19,8 @@ class BookingCreateThrottle(UserRateThrottle):
 class BookingCancelThrottle(UserRateThrottle):
     """10 cancellations per minute per authenticated user — prevents cancel-rebook abuse."""
     scope = "booking_cancel"
+
+
+class RentalFinishThrottle(UserRateThrottle):
+    """3 finish calls per minute per authenticated user — prevents duplicate payment captures."""
+    scope = "rental_finish"

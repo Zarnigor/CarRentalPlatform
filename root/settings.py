@@ -131,6 +131,7 @@ REST_FRAMEWORK = {
         "auth_register": "3/min",
         "booking_create": "5/min",
         "booking_cancel": "10/min",
+        "rental_finish": "3/min",
     },
 }
 

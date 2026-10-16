@@ -13,6 +13,7 @@ from apps.rental.serializers import (
     RentalDetailSerializer,
 )
 from apps.rental.services import RentalService
+from root.throttling import RentalFinishThrottle
 
 
 class RentalFilter(django_filters.FilterSet):
@@ -54,7 +55,7 @@ class RentalViewSet(ModelViewSet):
         rental = RentalService().update_rental(rental_id=kwargs["id"], **s.validated_data)
         return Response(RentalDetailSerializer(rental).data)
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], throttle_classes=[RentalFinishThrottle])
     def finish(self, request, **kwargs):
         s = self.get_serializer(data=request.data)
         s.is_valid(raise_exception=True)
