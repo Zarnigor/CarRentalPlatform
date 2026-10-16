@@ -118,11 +118,23 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_PAGINATION_CLASS": "root.pagination.StandardCursorPagination",
+    "PAGE_SIZE": 20,
     "EXCEPTION_HANDLER": "root.exception_handlers.app_exception_handler",
 
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.AcceptHeaderVersioning",
     "DEFAULT_VERSION": "1.0",
     "ALLOWED_VERSIONS": ["1.0", "2.0"],
+
+    "DEFAULT_THROTTLE_RATES": {
+        "auth_login": "5/min",
+        "auth_register": "3/min",
+        "booking_create": "5/min",
+        "booking_cancel": "10/min",
+        "rental_finish": "3/min",
+        "car_availability": "30/min",
+        "stations_nearby": "20/min",
+    },
 }
 
 
@@ -150,6 +162,13 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://redis:6379/1"),
+        "TIMEOUT": 300,          # standart: 5 daqiqa
+    }
+}
 
 import platform
 

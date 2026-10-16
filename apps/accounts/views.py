@@ -9,6 +9,8 @@ from rest_framework_simplejwt.serializers import (
     TokenVerifySerializer,
 )
 
+from root.throttling import AuthLoginThrottle, AuthRegisterThrottle
+
 from .models import Customer, CustomUser
 from .serializers import (
     CustomerReadSerializer,
@@ -34,7 +36,7 @@ class AuthViewSet(GenericViewSet):
             raise InvalidToken(exc.args[0])
         return Response(s.validated_data)
 
-    @action(methods=["post"], detail=False, url_path="token", permission_classes=[AllowAny], serializer_class=CustomTokenObtainPairSerializer)
+    @action(methods=["post"], detail=False, url_path="token", permission_classes=[AllowAny], throttle_classes=[AuthLoginThrottle], serializer_class=CustomTokenObtainPairSerializer)
     def token(self, request):
         return self._validate_and_respond(self.get_serializer_class(), request.data)
 
@@ -46,7 +48,7 @@ class AuthViewSet(GenericViewSet):
     def token_verify(self, request):
         return self._validate_and_respond(self.get_serializer_class(), request.data)
 
-    @action(methods=["post"], detail=False, url_path="register", permission_classes=[AllowAny], serializer_class=RegisterSerializer)
+    @action(methods=["post"], detail=False, url_path="register", permission_classes=[AllowAny], throttle_classes=[AuthRegisterThrottle], serializer_class=RegisterSerializer)
     def register(self, request):
         s = self.get_serializer(data=request.data)
         s.is_valid(raise_exception=True)

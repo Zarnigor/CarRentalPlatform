@@ -6,6 +6,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from apps.booking.selectors import BookingSelector
 from apps.fleet.models import Car
+from root.throttling import CarAvailabilityThrottle
 from apps.fleet.selectors import find_available_cars, get_car_or_raise
 from apps.fleet.serializers import (
     CarAvailabilityQuerySerializer,
@@ -46,6 +47,7 @@ class CarViewSet(ModelViewSet):
         methods=["get"],
         url_path="availability",
         permission_classes=[AllowAny],
+        throttle_classes=[CarAvailabilityThrottle],
     )
     def availability(self, request, pk=None):
         get_car_or_raise(int(pk))
